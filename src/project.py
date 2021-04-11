@@ -52,7 +52,7 @@ def wrangling():
     dset_train = Datakiller.Datakiller(DATA_PATH, TRAIN_DATA, TRAIN_IMG_FILE, TRAIN_LABEL_FILE, trans)
     dset_test = Datakiller.Datakiller(
     DATA_PATH, TEST_DATA, TEST_IMG_FILE, TEST_LABEL_FILE, trans2)
-
+    #We call the Datakiller class and have it package the data so that DataLoader can accept it. Transformations are also applied here.
     return dset_train, dset_test
 
 def f1_home(y_pred:torch.Tensor, y_true:torch.Tensor, is_training=False) -> torch.Tensor:
@@ -62,8 +62,8 @@ def f1_home(y_pred:torch.Tensor, y_true:torch.Tensor, is_training=False) -> torc
     if y_pred.ndim == 2:
         y_pred = y_pred.argmax(dim=1)
 
-    tp = (y_true * y_pred).sum().to(torch.float32)
-    tn = ((1 - y_true) * (1 - y_pred)).sum().to(torch.float32)
+    tp = (y_true * y_pred).sum().to(torch.float32) #Using the dot product here for convenience
+    tn = ((1 - y_true) * (1 - y_pred)).sum().to(torch.float32) #This code was copied from somewhere else, our implementation would probably have been less clean.
     fp = ((1 - y_true) * y_pred).sum().to(torch.float32)
     fn = (y_true * (1 - y_pred)).sum().to(torch.float32)
     
@@ -75,6 +75,9 @@ def f1_home(y_pred:torch.Tensor, y_true:torch.Tensor, is_training=False) -> torc
     f1 = 2* (precision*recall) / (precision + recall + epsilon)
     f1.requires_grad = is_training
     acc=(tp+tn)/(tp+tn+fp+fn)
+
+    #F1 score calculated as usual, accuracy is also calculated because why not.
+    #This function was used for accuracy measurement.
     return f1, acc
 
 def loss_for_f1(y_pred, y_true):
@@ -92,12 +95,15 @@ def loss_for_f1(y_pred, y_true):
     recall = tp / (tp + fn + epsilon)
 
     f1 = 2 * precision * recall / (precision + recall + epsilon)
-
+    #This is basically the above function except it returns the value as (1-F1), as our optimizers of course try to minimize the loss. This works as a loss function because we give
+    #our predictions as float probabilities instead of rounding them, leaving it differentiable. If we gave predictions for this function as 1 or 0, they would not work.
+    #This was used as a loss function.
     return 1 - torch.mean(f1)
     
 
 #--- model ---
 class CNN(nn.Module):
+    #Our CNN model with only 2 convolutional layers. This turned out to be much smaller than it should have been for this purpose. Luckily ResNet saved us.
     def __init__(self, num_classes=NUM_CLASSES):
         super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=12, padding=1, kernel_size=KERNEL_SIZE)
@@ -140,7 +146,8 @@ def train(epoch):
     for batch_num, (data, target) in enumerate(train_loader):       
         data, target = data.to(device), target.to(device)        
         output = model(data)
-        #loss = loss_function(output, target.float())
+        #output=torch.sigmoid(output) ---- This needs to be on when using F1 score as loss, but off for BCEWithLogitsLoss.
+        #loss = loss_function(output, target.float())  ------  We tried a few different loss functions. 
         loss=loss_for_f1(output, target.float())
         #loss=f1_weighted(output, target.float())
         #train_losses.append(loss.item())
@@ -192,11 +199,11 @@ def validate():
             l=len(output)
             acc=0
             while i<l:
-                f1l, a= f1_home(f1scoreout[i],target[i])         
+                f1l, a= f1_home(f1scoreout[i],target[i]) #Our homemade F1 score and accuracy
                 f1+=f1l
-                sk=f1_score(target[i].cpu(), f1scoreout[i].round().cpu(), average='weighted')
+                sk=f1_score(target[i].cpu(), f1scoreout[i].round().cpu(), average='weighted') #SKlearn's weighted F1 score
                 skf1+=sk
-                acc+=a
+                acc+=a 
                 i-=-1  
             #print("F1 score:", f1/l)
             epoch_total_f1+=(f1/l)
@@ -214,12 +221,14 @@ def validate():
         print("**************************************************")
         print("\n")
         return (epoch_total_f1/groups), (epoch_total_acc/groups)
-
+'''
+Our validate function outputs a lot of different values for the sake of comparison
+'''
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
-
+    #Random seed function for DataLoaders for consistency.
 if __name__ == '__main__':  
     #------DATA WRANGLING
 
@@ -245,7 +254,7 @@ if __name__ == '__main__':
     for a, i in enumerate(pos_weights):
         pos_weights[a]=i*(trainsize-news[a])/news[a]
     #optimizer=optim.AdamW(model.parameters())
-    optimizer=optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer=optim.SGD(model.parameters(), lr=0.001, momentum=0.9) #Many different optimizers were tried, SGD had some fairly good results
     #optimizer=optim.Adadelta(model.parameters())
     #optimizer=optim.RMSprop(model.parameters(), alpha=0.9, lr=0.001)
     loss_function=nn.BCEWithLogitsLoss(pos_weight=pos_weights.to(device))
@@ -267,7 +276,7 @@ if __name__ == '__main__':
         acccs.append(acc)
         f1s.append(f1)
         if f1>bestf:
-            torch.save(model.state_dict(), "checkpoint.pt")
+            torch.save(model.state_dict(), "checkpoint5.pt") #This saves our best model to a .pt file, it is also loaded at the end to run validate one more time.
             bestf=f1
             bestac=acc
             bestepoch=e
