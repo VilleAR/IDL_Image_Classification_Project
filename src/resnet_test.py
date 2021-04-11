@@ -52,10 +52,10 @@ CP_NAME="checkpoint4.pt"
 def wrangling():
     trans_train=transforms.Compose([    
                                         
-                                        
+                                        # Transforms for training set: Resize according to ResNet requirements and apply randomized rotations: Flip, Crop and Rotation
                                         transforms.RandomResizedCrop(224),
                                         transforms.RandomHorizontalFlip(),
-                                        transforms.RandomRotation(25), # -25 to 25 degree rotation
+                                        transforms.RandomRotation(25), 
                                         transforms.ToTensor(), # scales the pixel values to the range [0,1]
                                         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
