@@ -16,6 +16,7 @@ import pandas as pd
 from torch.autograd import Variable
 import matplotlib.pyplot as plt 
 from PIL import Image 
+import torchvision.models as models
 
 DATA_PATH = '../'
 TRAIN_DATA = 'train'
@@ -70,13 +71,12 @@ class CNN(nn.Module):
         x = self.bn1(x)
         x = self.relu1(x)
         x = self.pool(x)
-        x = F.dropout(x)
+        #x = F.dropout(x)
         #x = self.conv2(x)
         #x = self.relu2(x)
         x = self.conv3(x)
         x = self.bn3(x)
         x = self.relu3(x)
-        
         x = x.view(-1, 32*64*64)
         #x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = self.fc(x)
@@ -88,12 +88,14 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-model=CNN().to(device)
-cp=torch.load("checkpoint.pt")
+model_r = models.resnet34(pretrained = True)
+feature_count = model_r.fc.in_features
+model_r.fc = nn.Linear(feature_count, 14)
+model = model_r.to(device)
+cp=torch.load("final.pt")
 model.load_state_dict(cp)
+
 def seed_worker(worker_id):
-
-
     worker_seed = torch.initial_seed() % 2**32
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
@@ -136,11 +138,10 @@ def visualize_model(model, num_images=6):
                     return
 BATCH_SIZE_TEST=1
 DATA_PATRICK = '../testimages'
-test_transform = transforms.Compose([                                        
-                                        #transforms.Resize((224,224)),
-                                        transforms.ToTensor() # scales the pixel values to the range [0,1]
-                                        #transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                                        ])
+test_transform = transforms.Compose([                                      
+                                        transforms.Resize((224,224)),
+                                        transforms.ToTensor(), # scales the pixel values to the range [0,1]
+                                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) ])
 test_set  = datasets.ImageFolder(DATA_PATRICK,  transform=test_transform)
 test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=BATCH_SIZE_TEST, shuffle=False, worker_init_fn=seed_worker)
 model.eval()
@@ -163,21 +164,19 @@ with torch.no_grad():
     freq = {}
     for data, target in test_loader:
         if z!=0:
+            data=data.to(device)
             output=model(data)
             output=torch.sigmoid(output)
             i=0
             #print(output)
             v=torch.round(output) 
             v=v.tolist()
-            preds.append(v)
+            preds.append(v[0])
             if z>1:
                 z=z-1
                 print(v)
-        else:
-            break
 
-with open('predictions.txt', 'w') as f:
-    for item in preds:
-        f.write("%s\n" % item)
-        pass
+
+df=pd.DataFrame(preds, columns=class_names, dtype=float)
+df.to_csv(r'preds.csv',index=False)
 
