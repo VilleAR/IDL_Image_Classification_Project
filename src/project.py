@@ -38,6 +38,7 @@ TRAIN_LABEL_FILE = 'labelstrain.txt'
 TEST_LABEL_FILE = 'labelsval.txt'
 KERNEL_SIZE=3
 
+#Many of these functions are in both project.py and resnet_test.py. Lassi wrote the comments for resnet_test.py so they're a bit more easy to read as I am a little lazy
 
 def wrangling():
     trans=transforms.Compose([
@@ -235,7 +236,7 @@ def seed_worker(worker_id):
 if __name__ == '__main__':  
     #------DATA WRANGLING
 
-    #dataset = ImageFolder('../data/alldata', transform=train_transform)
+    #dataset = ImageFolder('../data/alldata', transform=train_transform) -- Legacy, this did not do the job
     dstrain, dsval = wrangling()
     train_loader = torch.utils.data.DataLoader(dataset=dstrain, batch_size=BATCH_SIZE_TRAIN, shuffle=True, worker_init_fn=seed_worker)
     val_loader=torch.utils.data.DataLoader(dataset=dsval, batch_size=BATCH_SIZE_VAL, shuffle=False)
@@ -256,6 +257,8 @@ if __name__ == '__main__':
     pos_weights=torch.ones([14])
     for a, i in enumerate(pos_weights):
         pos_weights[a]=i*(trainsize-news[a])/news[a]
+    #This was all for making a weighted BCE loss. The Weightless loss function turned out to be better for the ResNet and our custom made F1 loss was the best for the CNN. 
+
     #optimizer=optim.AdamW(model.parameters())
     optimizer=optim.SGD(model.parameters(), lr=0.001, momentum=0.9) #Many different optimizers were tried, SGD had some fairly good results
     #optimizer=optim.Adadelta(model.parameters())

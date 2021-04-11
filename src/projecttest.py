@@ -82,24 +82,21 @@ class CNN(nn.Module):
         x = self.fc(x)
         #x = self.sig(x)
         return x 
+'''
+This CNN architecture is probably not necessary at all but we included it here just in case
+'''
 
 
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-else:
-    device = torch.device('cpu')
-model_r = models.resnet34(pretrained = True)
-feature_count = model_r.fc.in_features
-model_r.fc = nn.Linear(feature_count, 14)
-model = model_r.to(device)
-cp=torch.load("final.pt")
-model.load_state_dict(cp)
 
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
 
+
+'''
+imshow and visualize_model are for visualizing individual images and guessing labels, not used in current code
+'''
 def imshow(inp, title=None):
     """Imshow for Tensor."""
     inp = inp.numpy().transpose((1, 2, 0))
@@ -136,6 +133,20 @@ def visualize_model(model, num_images=6):
                 plt.pause(2)
                 if images_so_far == num_images:                 
                     return
+
+
+'''Important stuff:
+'''
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+model_r = models.resnet34(pretrained = True)
+feature_count = model_r.fc.in_features
+model_r.fc = nn.Linear(feature_count, 14)
+model = model_r.to(device)
+cp=torch.load("final.pt")
+model.load_state_dict(cp)
 BATCH_SIZE_TEST=1
 DATA_PATRICK = '../testimages'
 test_transform = transforms.Compose([                                      
@@ -151,13 +162,13 @@ train_loader = torch.utils.data.DataLoader(dataset=dset_train, batch_size=BATCH_
 class_names=['baby', 'bird','car','clouds','dog','female','flower','male','night','people','portrait','river','sea','tree']
     # Get a batch of training data
 inputs, classes = next(iter(train_loader))
-
-    # Make a grid from batch
+'''
+    # Make a grid from batch, this is not used currently
 out = torchvision.utils.make_grid(inputs)
 classes=classes.tolist()
 #imshow(out, title=[class_names[x] for x in classes[0]])
-
-
+'''
+'''Creating predictions:'''
 preds=[]
 with torch.no_grad():
     z=20
