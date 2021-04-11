@@ -55,6 +55,7 @@ def wrangling():
     #We call the Datakiller class and have it package the data so that DataLoader can accept it. Transformations are also applied here.
     return dset_train, dset_test
 
+
 def f1_home(y_pred:torch.Tensor, y_true:torch.Tensor, is_training=False) -> torch.Tensor:
 
     assert y_true.ndim == 1
@@ -79,6 +80,7 @@ def f1_home(y_pred:torch.Tensor, y_true:torch.Tensor, is_training=False) -> torc
     #F1 score calculated as usual, accuracy is also calculated because why not.
     #This function was used for accuracy measurement.
     return f1, acc
+
 
 def loss_for_f1(y_pred, y_true):
 
@@ -138,6 +140,7 @@ class CNN(nn.Module):
 
     #--- set up --#
 
+
     #TRAINING!!!!!!!!!!!!!
 def train(epoch):
     
@@ -173,12 +176,12 @@ def train(epoch):
                 epoch, batch_num * len(data), len(train_loader.dataset),
                 100. * batch_num / len(train_loader), loss.item()))
 
+
 #VAlidation
 def validate():
     model.eval()
     val_loss=0
     correct=0
-    z=5
     with torch.no_grad():
         epoch_total_f1=0
         epoch_total_acc=0
@@ -195,7 +198,7 @@ def validate():
             f1=0
             skf1=0
             sig=nn.Sigmoid()
-            f1scoreout=sig(output)
+            f1scoreout=sig(output) #BCEWithLogitsLoss does not want the model to run through a sigmoid in the end as it does it on its own, so we do it manually whenever we want outputs
             l=len(output)
             acc=0
             while i<l:
@@ -263,15 +266,16 @@ if __name__ == '__main__':
     prev=0
     count=0
     bestac=0
-    bestf=0
+    bestf=0 #Best F1 score so far
     bestepoch=0
-    acccs=[]
-    f1s=[]
+    acccs=[] #Accuracy scores
+    f1s=[] #F1 scores
     for e in range(1, N_EPOCHS+1):
+        #Basic train loop, adding accuracy values to arrays to plot later.
         train_losses = []
         train_counter = []
         val_losses=[]
-        train(e)
+        train(e) #We call train as a function to make things easier overall, particularly when testing our validate function
         f1, acc=validate()
         acccs.append(acc)
         f1s.append(f1)
@@ -288,6 +292,7 @@ if __name__ == '__main__':
     cp=torch.load("checkpoint.pt")
     model.load_state_dict(cp)
     #validate()
+    #Plotting accuracies to make them easier to interpret
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.plot(acccs)
