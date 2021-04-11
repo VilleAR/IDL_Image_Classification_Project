@@ -20,7 +20,7 @@ from sklearn.metrics import f1_score
 from PIL import Image 
 
 ######## Testing with pretrained ResNet34 ########
-
+#This is the file we used for our actual results, as it had significantly better accuracies than our CNN.
 """
 Minirun kept at False for results in submission.
 L1, L2 not run - insufficient results not differing enough from plain loss.
@@ -151,7 +151,7 @@ def loss_for_f1(y_pred, y_true):
     return 1 - torch.mean(f1)
 
 
-# The model itself. Even though named CNN, this is the ResNet...
+# The model itself. The CNN is not used in this file, but left here as legacy
 class CNN(nn.Module):
     def __init__(self, num_classes=NUM_CLASSES):
         super(CNN, self).__init__()
@@ -318,11 +318,15 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    # Test the ResNet
+   
+    #*******************IMPLEMENTING RESNET************************
     model_r = models.resnet34(pretrained = True)
     feature_count = model_r.fc.in_features
     model_r.fc = nn.Linear(feature_count, 14)
     model = model_r.to(device)
+    #**************************************************************
+
+
 
     # Loss fn and optimizer for model. SGD not nicest imo.
     loss_function = nn.BCEWithLogitsLoss()
